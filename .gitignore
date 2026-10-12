@@ -1,0 +1,12 @@
+# Local environment configuration
+.env
+.env.*
+!.env.example
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Editors and operating-system files
+.vscode/
+.DS_Store
