@@ -1,0 +1,78 @@
+pull_number,title,author,author_association,state,merged_at,created_at,updated_at,closed_at,base_branch,head_branch,commits,additions,deletions,changed_files,labels,html_url,body
+11791,KAFKA-13676: Commit successfully processed tasks on error,wcarlson5,CONTRIBUTOR,closed,2022-02-23T07:10:05Z,2022-02-18T17:11:22Z,2022-02-23T07:10:05Z,2022-02-23T07:10:05Z,trunk,commit_on_error,7,158,8,4,,https://github.com/apache/kafka/pull/11791,"When we hit an exception when processing tasks we should save the work we have done so far.
+This will only be relevant with ALOS and EOS-v1, not EOS-v2. It will actually reduce the number of duplicated record in ALOS because we will not be successfully processing tasks successfully more than once in many cases.
+
+This is currently enabled only for named topologies.
+
+The behavior was rather throughly tested. There is a `EmitOnChangeIntegrationTest` that makes sure if there is an exception in a task, after replacing the thread and if the exception does not throw again the record would still be processed. I just added another task into the test such that even if the other task keep throwing exceptions and hence never complete processing its record, this new task that could process successfully would be able to make progress and commit its offset.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+11686,KAFKA-12648: invoke exception handler for MissingSourceTopicException with named topologies,ableegoldman,MEMBER,closed,2022-01-25T18:37:35Z,2022-01-18T06:52:37Z,2022-01-25T18:37:35Z,2022-01-25T18:37:35Z,trunk,12648-invoke-streams-handler-for-MissingSourceTopicException,5,314,298,10,,https://github.com/apache/kafka/pull/11686,"Followup to #11600 to invoke the streams exception handler on the MissingSourceTopicException, without killing/replacing the thread "
+11591,KAFKA-12648: fix IllegalStateException in ClientState after removing topologies,ableegoldman,MEMBER,closed,2021-12-10T22:26:27Z,2021-12-10T08:30:43Z,2021-12-10T22:26:27Z,2021-12-10T22:26:27Z,trunk,12648-fix-IllegalStateException-in-ClientState,4,51,14,5,,https://github.com/apache/kafka/pull/11591,"Fix for one of the causes of failure in the NamedTopologyIntegrationTest: `org.apache.kafka.streams.errors.StreamsException: java.lang.IllegalStateException: Must initialize prevActiveTasks from ownedPartitions before initializing remaining tasks.`
+
+This exception could occur if a member sent in a subscription where all of its `ownedPartitions` were from a named topology that is no longer recognized by the group leader, eg because it was just removed from the client. We should filter each ClientState based on the current topology only so the assignor only processes the partitions/tasks it can identify. The member with the out-of-date tasks will eventually clean them up when the `#removeNamedTopology` API is invoked on them"
+12159,KAFKA-13933: Fix stuck SSL tests in case of authentication failure,fvaleri,CONTRIBUTOR,closed,2022-06-05T07:47:09Z,2022-05-13T15:07:20Z,2023-05-22T16:13:09Z,2022-06-05T07:47:09Z,trunk,stuck-ssl-tests,1,45,50,5,tests,https://github.com/apache/kafka/pull/12159,"When there is an authentication error after the initial TCP connection,
+the selector never becomes READY, and these tests wait forever waiting for this state.
+
+This is actually what happened to me while using an OpenJDK build that does not
+support the required cipher suites."
+12073,MINOR; Fix partition change record noop check,jsancio,MEMBER,closed,2022-04-21T16:05:46Z,2022-04-20T19:19:25Z,2022-04-21T16:05:50Z,2022-04-21T16:05:46Z,trunk,minor-fix-change-noop,3,25,0,3,kraft,https://github.com/apache/kafka/pull/12073,"When LeaderRecoveryState was added to the PartitionChangeRecord, the
+check for being a noop was not updated. This commit fixes that and
+improves the associated test avoid this oversight in the future.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+11981,KAFKA-13791: Fix FetchResponse#`fetchData` and `forgottenTopics`: Assignment of lazy-initialized members should be the last step with double-checked locking,yun-yun,CONTRIBUTOR,closed,2022-04-05T07:27:32Z,2022-04-01T02:52:41Z,2022-04-05T07:27:32Z,2022-04-05T07:27:32Z,trunk,kafka-13791,1,12,6,2,,https://github.com/apache/kafka/pull/11981,"Double-checked locking can be used for lazy initialization of volatile fields, but only if field assignment is the last step in the synchronized block. Otherwise, you run the risk of threads accessing a half-initialized object.
+
+The problem is consistent with [KAFKA-13777](https://issues.apache.org/jira/projects/KAFKA/issues/KAFKA-13777)
+
+#https://github.com/apache/kafka/pull/11963"
+11867,KAFKA-12648: fix #getMinThreadVersion and include IOException + topologyName in StreamsException when topology dir cleanup fails,ableegoldman,MEMBER,closed,2022-03-10T00:30:42Z,2022-03-09T05:19:03Z,2022-03-10T00:30:56Z,2022-03-10T00:30:43Z,trunk,12648-HOTFIX-log-IOException-when-clearing-named-topology-state-dir-fails,3,11,7,3,,https://github.com/apache/kafka/pull/11867,"Quick fix to make sure we log the actual source of the failure both in the actual log message as well as the StreamsException that we bubble up to the user's exception handler, and also to report the offending topology by filling in the StreamsException's `taskId` field.
+
+Also prevents a `NoSuchElementException` from being thrown when trying to compute the minimum topology version across all threads when the last thread is being unregistered during shutdown.
+
+This aims to fix some flakiness that has shown up in the NamedTopologyIntegrationTest's `#shouldAddToEmptyInitialTopologyRemoveResetOffsetsThenAddSameNamedTopologyWithRepartitioning` recently"
+11991,KAFKA-13794: Fix comparator of inflightBatchesBySequence in TransactionManager,ddrid,CONTRIBUTOR,closed,2022-04-05T17:03:33Z,2022-04-03T07:33:31Z,2022-04-07T04:05:21Z,2022-04-05T17:03:33Z,trunk,fix_comparator_in_transactionManager,2,70,2,2,,https://github.com/apache/kafka/pull/11991,"As described in https://issues.apache.org/jira/browse/KAFKA-13794, producer batches in inflightBatchesBySequence are not being removed correctly. One batch may be removed by another batch with the same sequence number.
+This patch defines a comparator explicitly, we can only remove a batch if it equals to the original one.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+12207,MINOR: Several fixes and improvements for FeatureControlManager,cmccabe,CONTRIBUTOR,closed,2022-06-01T23:09:38Z,2022-05-24T23:46:15Z,2022-06-01T23:09:44Z,2022-06-01T23:09:38Z,trunk,feature-control-manager-fixes,8,257,280,10,,https://github.com/apache/kafka/pull/12207,"This PR fixes a bug where FeatureControlManager#replay(FeatureLevelRecord) was throwing an
+exception if not all controllers in the quorum supported the feature being applied. While we do
+want to validate this, it needs to be validated earlier, before the record is committed to the log.
+Once the record has been committed to the log it should always be applied if the current controller
+supports it.
+
+Fix another bug where removing a feature was not supported once it had been configured. Note that
+because we reserve feature level 0 for ""feature not enabled"", we don't need to use
+Optional<VersionRange>; we can just return a range of 0-0 when the feature is not supported.
+
+In error messages, give more detail about what the problem is when a controller in the quorum cannot
+handle a new version. For example, ""Local controller 0 does not support this feature"" rather than just
+""quorum does not support this feature"".
+
+Allow the metadata version to be downgraded when UpgradeType.UNSAFE_DOWNGRADE has been set.
+Previously we were unconditionally denying this even when this was set.
+
+Add a builder for FeatureControlManager, so that we can easily add new parameters to the
+constructor in the future. This will also be useful for creating FeatureControlManagers that are
+initialized to a specific MetadataVersion."
+11926,KAFKA-13714: Fix cache flush position,vvcephei,CONTRIBUTOR,closed,2022-03-24T03:09:05Z,2022-03-22T05:16:01Z,2023-02-22T16:56:15Z,2022-03-24T03:09:05Z,trunk,fix-cache-flush-position,2,250,57,12,streams,https://github.com/apache/kafka/pull/11926,"The caching store layers were passing down writes into lower store layers upon eviction, but not setting the context to the evicted records' context. Instead, the context was from whatever unrelated record was being processed at the time.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+11847,KAFKA-12648: fix NPE due to race condtion between resetting offsets and removing a topology,ableegoldman,MEMBER,closed,2022-03-07T19:09:18Z,2022-03-04T18:28:38Z,2022-03-08T08:04:44Z,2022-03-07T19:09:19Z,trunk,HOTFIX-prevent-NPE-in-removeNamedTopology-with-resetOffsets,3,71,38,7,,https://github.com/apache/kafka/pull/11847,"While debugging the flaky `NamedTopologyIntegrationTest. shouldRemoveOneNamedTopologyWhileAnotherContinuesProcessing` test, I did discover one real bug. The problem was that we update the TopologyMetadata's `builders` map (with the known topologies) inside the #removeNamedTopology call directly, whereas the StreamThread may not yet have reached the `poll()` in the loop and in case of an offset reset, we get an NP.e
+I changed the NPE to just log a warning for now, going forward I think we should try to tackle some tech debt by keeping the processing tasks and the TopologyMetadata in sync"
