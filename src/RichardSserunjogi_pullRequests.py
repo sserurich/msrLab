@@ -19,20 +19,16 @@ from github_config import load_dotenv
 
 DEFAULT_REPOSITORY = "apache/kafka"
 DEFAULT_PULL_NUMBERS = (
-    11791,
-    11686,
-    11591,
-    12159,
-    12073,
-    11981,
-    11867,
-    11991,
-    12207,
-    11926,
-    11847,
+    12398,
+    13175,
+    12751,
+    12660,
+    12532,
+    12289,
+    14151,
 )
-DEFAULT_SUMMARY_OUTPUT = Path("data/apache_kafka_merged_pull_requests.csv")
-DEFAULT_FILES_OUTPUT = Path("data/apache_kafka_merged_pull_requests_files.csv")
+DEFAULT_SUMMARY_OUTPUT = Path("data/sserurich_kafka_merged_pull_requests.csv")
+DEFAULT_FILES_OUTPUT = Path("data/sserurich_kafka_merged_pull_requests_files.csv")
 API_URL = "https://api.github.com"
 API_VERSION = "2026-03-10"
 MAX_RETRIES = 5

@@ -1,0 +1,128 @@
+pull_number,title,author,author_association,state,merged_at,created_at,updated_at,closed_at,base_branch,head_branch,commits,additions,deletions,changed_files,labels,html_url,body
+12398,KAFKA-14062: OAuth client token refresh fails with SASL extensions,kirktrue,CONTRIBUTOR,closed,2022-07-12T08:58:19Z,2022-07-09T19:13:39Z,2023-10-25T00:16:19Z,2022-07-12T08:58:19Z,trunk,kafka-14062-fix-oauth-refresh,3,126,28,5,,https://github.com/apache/kafka/pull/12398,"Authored by @emissionnebula
+
+What
+----
+Kafka client is adding and removing the SASL extensions alternatively at the time of token refresh. During the window when the extensions are not present in the subject. If a connection to a broker is reattempted, it fails with the error that the extensions are missing.
+
+See [KAFKA-14062](https://issues.apache.org/jira/browse/KAFKA-14062) for more information.
+
+Why
+----
+In clients, a Subject object is maintained which contains two sets each for Private and Public Credentials. Public Credentials includes the extensions. These values are stored in a `SaslExtensions` object which internally maintains these in a HashMap. 
+
+At the time of token refresh, a SaslExtensions object with these extensions is added to the public credentials set. As a next step, the refresh thread tries to logout the client for the older credentials. So it tries to remove the older token (private credential) and older SaslExtensions object (public credential) from the sets maintained in the Subject object. 
+
+SaslExtensions Class overrides the `equals` and `hashcode` functions and directly calls the `equals` and `hashcode` functions of HashMap. So at the time refresh when a new SaslExtensions object is added, because the extension values don't change, it results in a no-op because the hashes of the existing SaslExtensions object and the new object will be equals. But in the logout step, the only SaslExtensions object present in the set gets removed.
+
+After removing the extensions in 1st refresh, the extensions will get added again at the time of 2nd refresh. So, this addition and removal keep happening alternatively.
+
+The addition and removal of private credentials (tokens) from Subject work just fine because the tokens are always different.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+13175,KAFAK-14660: Fix divide-by-zero vulnerability,mjsax,MEMBER,closed,2023-01-31T07:39:41Z,2023-01-30T17:17:00Z,2023-02-08T05:40:14Z,2023-01-31T07:39:41Z,trunk,kafka-14660-divide-by-zero,1,4,0,1,streams,https://github.com/apache/kafka/pull/13175,"This PR adds a safe-guard for divide-by-zero. While `totalCapacity` can never be zero, an explicit error message is desirable."
+12751,MINOR: Include TLS version in transport layer debug log,ijuma,MEMBER,closed,2022-10-17T15:26:23Z,2022-10-14T14:04:34Z,2022-10-17T15:26:27Z,2022-10-17T15:26:23Z,trunk,tls-version-transport-layer,1,4,4,1,,https://github.com/apache/kafka/pull/12751,"This was helpful when debugging an issue recently.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+12660,MINOR: use addExact to avoid overflow and some cleanup,showuon,MEMBER,closed,2022-09-22T01:22:58Z,2022-09-19T04:52:21Z,2022-09-22T01:22:58Z,2022-09-22T01:22:58Z,trunk,batchAccumulatorCleanup,2,9,7,3,,https://github.com/apache/kafka/pull/12660,"What changes in this PR:
+1. Use `addExact` to avoid overflow in `BatchAccumulator#bytesNeeded`. We did use `addExact` in `bytesNeededForRecords` method, but forgot that when returning the result.
+2. javadoc improvement
+ 
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+12532,HOTFIX: Revert KAFKA-10199 which is causing compilation failures,hachikuji,CONTRIBUTOR,closed,2022-08-17T21:29:49Z,2022-08-17T21:15:38Z,2022-08-17T21:29:50Z,2022-08-17T21:29:49Z,trunk,revert-bad-streams-commits,2,12,178,3,,https://github.com/apache/kafka/pull/12532,"Compilation is failing after these two commits:
+```
+> Task :streams:compileJava
+/Users/jgustafson/Projects/kafka/streams/src/main/java/org/apache/kafka/streams/processor/internals/TaskManager.java:852: error: cannot find symbol
+                        tasks.addPendingTaskToClose(restoringTask.id());
+                             ^
+  symbol:   method addPendingTaskToClose(org.apache.kafka.streams.processor.TaskId)
+  location: variable tasks of type org.apache.kafka.streams.processor.internals.Tasks
+1 error
+```
+And:
+```
+
+[2022-08-17T20:58:20.912Z] > Task :streams:compileTestJava
+
+[2022-08-17T20:58:20.912Z] /home/jenkins/jenkins-agent/workspace/Kafka_kafka-pr_PR-12530/streams/src/test/java/org/apache/kafka/streams/processor/internals/TaskManagerTest.java:822: error: method setupForRevocation(Set<Task>,Set<Task>) is already defined in class TaskManagerTest
+
+[2022-08-17T20:58:20.912Z]     private TaskManager setupForRevocation(final Set<Task> tasksInStateUpdater,
+```
+
+ This patch reverts them.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+12289,KAFKA-13957: Fix flaky shouldQuerySpecificActivePartitionStores test,mdedetrich,CONTRIBUTOR,closed,2022-07-04T18:26:53Z,2022-06-13T22:16:05Z,2022-07-04T20:03:18Z,2022-07-04T18:26:54Z,trunk,fix-shouldQuerySpecificActivePartitionStores-flakey-test,14,26,13,1,streams,https://github.com/apache/kafka/pull/12289,"Currently the tests fail because there is a missing predicate in the `retrievableException` which causes the test to fail, i.e. the current predicates
+
+```java
+containsString(""Cannot get state store source-table because the stream thread is PARTITIONS_ASSIGNED, not RUNNING""),
+containsString(""The state store, source-table, may have migrated to another instance""),
+containsString(""Cannot get state store source-table because the stream thread is STARTING, not RUNNING"")
+```
+wasn't complete. Another one needed to be added, namely ""The specified partition 1 for store source-table does not exist."". This is because its possible for 
+
+```java
+assertThat(getStore(kafkaStreams2, storeQueryParam2).get(key), is(nullValue()));
+```         
+or
+
+```java
+assertThat(getStore(kafkaStreams1, storeQueryParam2).get(key), is(nullValue()));
+```
+
+(depending on which branch) to be thrown, i.e. see
+```
+org.apache.kafka.streams.errors.InvalidStateStorePartitionException: The specified partition 1 for store source-table does not exist.
+
+	at org.apache.kafka.streams.state.internals.WrappingStoreProvider.stores(WrappingStoreProvider.java:63)
+	at org.apache.kafka.streams.state.internals.CompositeReadOnlyKeyValueStore.get(CompositeReadOnlyKeyValueStore.java:53)
+	at org.apache.kafka.streams.integration.StoreQueryIntegrationTest.lambda$shouldQuerySpecificActivePartitionStores$5(StoreQueryIntegrationTest.java:223)
+	at org.apache.kafka.streams.integration.StoreQueryIntegrationTest.retryUntil(StoreQueryIntegrationTest.java:579)
+	at org.apache.kafka.streams.integration.StoreQueryIntegrationTest.shouldQuerySpecificActivePartitionStores(StoreQueryIntegrationTest.java:186)
+```
+
+This happens when the stream hasn't been initialized yet. I have run the test around 12k times using Intellij's JUnit testing framework without any flaky failures. The PR also does some minor refactoring regarding moving the list of predicates into their own functions.
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
+14151,"KAFKA-15083: add config with ""remote.log.metadata"" prefix",showuon,MEMBER,closed,2023-08-11T02:42:14Z,2023-08-04T10:06:08Z,2023-08-11T02:42:14Z,2023-08-11T02:42:14Z,trunk,KAFKA-15083,3,85,11,3,tiered-storage,https://github.com/apache/kafka/pull/14151,"When configuring RLMM, the configs passed into `configure` method is the `RemoteLogManagerConfig`. But in `RemoteLogManagerConfig`, there's no configs related to `remote.log.metadata.*`, ex: `remote.log.metadata.topic.replication.factor`. So, even if users have set the config in broker, it'll never be applied.
+
+This PR fixed the issue to allow users setting RLMM prefix: `remote.log.metadata.manager.impl.prefix` (default is `rlmm.config.`), and then, appending the desired `remote.log.metadata.*` configs, it'll pass into RLMM, including `remote.log.metadata.common.client.`/`remote.log.metadata.producer.`/ `remote.log.metadata.consumer.` prefixes.
+
+Ex: 
+```
+# default value
+# remote.log.storage.manager.impl.prefix=rsm.config.
+# remote.log.metadata.manager.impl.prefix=rlmm.config.
+
+rlmm.config.remote.log.metadata.topic.num.partitions=50
+rlmm.config.remote.log.metadata.topic.replication.factor=4
+
+rsm.config.test=value
+```
+
+### Committer Checklist (excluded from commit message)
+- [ ] Verify design and implementation 
+- [ ] Verify test coverage and CI build status
+- [ ] Verify documentation (including upgrade notes)
+"
